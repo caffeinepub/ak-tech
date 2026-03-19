@@ -785,7 +785,7 @@ export default function App() {
                     label: "Address",
                     value: "123 Tech Street, City",
                   },
-                  { icon: Phone, label: "Phone", value: "+1 234 567 890" },
+                  { icon: Phone, label: "Phone", value: "+91 80909610796" },
                   { icon: Mail, label: "Email", value: "info@aktech.com" },
                 ].map((item) => (
                   <div key={item.label} className="flex items-center gap-4">
@@ -985,7 +985,7 @@ export default function App() {
               </h4>
               <ul className="space-y-2 text-sm text-muted-foreground">
                 <li>123 Tech Street, City</li>
-                <li>+1 234 567 890</li>
+                <li>+91 80909610796</li>
                 <li>info@aktech.com</li>
               </ul>
             </div>
