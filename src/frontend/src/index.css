@@ -1,0 +1,136 @@
+@import url("https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,300;12..96,400;12..96,500;12..96,700;12..96,800&family=Satoshi:wght@300;400;500;700&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --radius: 1rem;
+
+    /* Dark Forest Luxury – OKLCH */
+    /* Deep forest near-black */
+    --background: 0.09 0.018 158;
+    --foreground: 0.96 0.014 88;
+
+    /* Dark surface card */
+    --card: 0.13 0.022 155;
+    --card-foreground: 0.96 0.014 88;
+
+    --popover: 0.13 0.022 155;
+    --popover-foreground: 0.96 0.014 88;
+
+    /* Vivid leaf green */
+    --primary: 0.65 0.16 145;
+    --primary-foreground: 0.08 0.018 160;
+
+    /* Dark forest mid-tone */
+    --secondary: 0.17 0.028 154;
+    --secondary-foreground: 0.84 0.045 148;
+
+    /* Muted forest */
+    --muted: 0.19 0.024 154;
+    --muted-foreground: 0.58 0.055 148;
+
+    /* Gold-green accent */
+    --accent: 0.78 0.11 145;
+    --accent-foreground: 0.09 0.018 158;
+
+    /* Destructive */
+    --destructive: 0.577 0.245 27.325;
+    --destructive-foreground: 0.985 0 0;
+
+    /* Borders */
+    --border: 0.24 0.03 153;
+    --input: 0.24 0.03 153;
+    --ring: 0.65 0.16 145;
+
+    /* Charts */
+    --chart-1: 0.65 0.16 145;
+    --chart-2: 0.55 0.12 160;
+    --chart-3: 0.78 0.11 145;
+    --chart-4: 0.42 0.09 155;
+    --chart-5: 0.7 0.13 150;
+
+    /* Sidebar */
+    --sidebar: 0.09 0.018 158;
+    --sidebar-foreground: 0.96 0.014 88;
+    --sidebar-primary: 0.65 0.16 145;
+    --sidebar-primary-foreground: 0.08 0.018 160;
+    --sidebar-accent: 0.17 0.028 154;
+    --sidebar-accent-foreground: 0.84 0.045 148;
+    --sidebar-border: 0.24 0.03 153;
+    --sidebar-ring: 0.65 0.16 145;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    color-scheme: dark;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: "Satoshi", sans-serif;
+    overflow-x: hidden;
+  }
+}
+
+@layer components {
+  .glass {
+    background: oklch(var(--card) / 0.65);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid oklch(var(--border) / 0.6);
+  }
+
+  .glass-light {
+    background: oklch(var(--foreground) / 0.05);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid oklch(var(--foreground) / 0.12);
+  }
+
+  .text-gradient {
+    background: linear-gradient(
+      135deg,
+      oklch(var(--foreground)) 0%,
+      oklch(var(--primary)) 60%,
+      oklch(var(--accent)) 100%
+    );
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .section-clip-top {
+    clip-path: polygon(0 4rem, 100% 0, 100% 100%, 0 100%);
+  }
+
+  .section-clip-top-reverse {
+    clip-path: polygon(0 0, 100% 4rem, 100% 100%, 0 100%);
+  }
+
+  .orb {
+    position: absolute;
+    border-radius: 9999px;
+    filter: blur(80px);
+    pointer-events: none;
+    will-change: transform;
+  }
+
+  .orb-primary {
+    background: oklch(var(--primary) / 0.22);
+  }
+
+  .orb-accent {
+    background: oklch(var(--accent) / 0.16);
+  }
+
+  .orb-muted {
+    background: oklch(var(--muted-foreground) / 0.1);
+  }
+}
