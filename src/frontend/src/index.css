@@ -8,59 +8,53 @@
   :root {
     --radius: 1rem;
 
-    /* Dark Forest Luxury – OKLCH */
-    /* Deep forest near-black */
-    --background: 0.09 0.018 158;
-    --foreground: 0.96 0.014 88;
+    /* Deep Space – OKLCH */
+    --background: 0.06 0.02 270;
+    --foreground: 0.96 0.01 210;
 
-    /* Dark surface card */
-    --card: 0.13 0.022 155;
-    --card-foreground: 0.96 0.014 88;
+    --card: 0.1 0.025 268;
+    --card-foreground: 0.96 0.01 210;
 
-    --popover: 0.13 0.022 155;
-    --popover-foreground: 0.96 0.014 88;
+    --popover: 0.1 0.025 268;
+    --popover-foreground: 0.96 0.01 210;
 
-    /* Vivid leaf green */
-    --primary: 0.65 0.16 145;
-    --primary-foreground: 0.08 0.018 160;
+    /* Electric cyan */
+    --primary: 0.72 0.18 195;
+    --primary-foreground: 0.05 0.02 270;
 
-    /* Dark forest mid-tone */
-    --secondary: 0.17 0.028 154;
-    --secondary-foreground: 0.84 0.045 148;
+    --secondary: 0.13 0.03 265;
+    --secondary-foreground: 0.8 0.06 200;
 
-    /* Muted forest */
-    --muted: 0.19 0.024 154;
-    --muted-foreground: 0.58 0.055 148;
+    --muted: 0.16 0.025 265;
+    --muted-foreground: 0.55 0.06 220;
 
-    /* Gold-green accent */
-    --accent: 0.78 0.11 145;
-    --accent-foreground: 0.09 0.018 158;
+    /* Vivid purple/violet */
+    --accent: 0.6 0.22 295;
+    --accent-foreground: 0.06 0.02 270;
 
-    /* Destructive */
     --destructive: 0.577 0.245 27.325;
     --destructive-foreground: 0.985 0 0;
 
-    /* Borders */
-    --border: 0.24 0.03 153;
-    --input: 0.24 0.03 153;
-    --ring: 0.65 0.16 145;
+    --border: 0.22 0.035 265;
+    --input: 0.22 0.035 265;
+    --ring: 0.72 0.18 195;
 
-    /* Charts */
-    --chart-1: 0.65 0.16 145;
-    --chart-2: 0.55 0.12 160;
-    --chart-3: 0.78 0.11 145;
-    --chart-4: 0.42 0.09 155;
-    --chart-5: 0.7 0.13 150;
+    /* Charts – cyan/purple variants */
+    --chart-1: 0.72 0.18 195;
+    --chart-2: 0.6 0.22 295;
+    --chart-3: 0.55 0.15 220;
+    --chart-4: 0.5 0.18 270;
+    --chart-5: 0.65 0.14 200;
 
     /* Sidebar */
-    --sidebar: 0.09 0.018 158;
-    --sidebar-foreground: 0.96 0.014 88;
-    --sidebar-primary: 0.65 0.16 145;
-    --sidebar-primary-foreground: 0.08 0.018 160;
-    --sidebar-accent: 0.17 0.028 154;
-    --sidebar-accent-foreground: 0.84 0.045 148;
-    --sidebar-border: 0.24 0.03 153;
-    --sidebar-ring: 0.65 0.16 145;
+    --sidebar: 0.06 0.02 270;
+    --sidebar-foreground: 0.96 0.01 210;
+    --sidebar-primary: 0.72 0.18 195;
+    --sidebar-primary-foreground: 0.05 0.02 270;
+    --sidebar-accent: 0.13 0.03 265;
+    --sidebar-accent-foreground: 0.8 0.06 200;
+    --sidebar-border: 0.22 0.035 265;
+    --sidebar-ring: 0.72 0.18 195;
   }
 
   * {
@@ -123,14 +117,67 @@
   }
 
   .orb-primary {
-    background: oklch(var(--primary) / 0.22);
+    background: oklch(var(--primary) / 0.18);
   }
 
   .orb-accent {
-    background: oklch(var(--accent) / 0.16);
+    background: oklch(var(--accent) / 0.15);
   }
 
   .orb-muted {
-    background: oklch(var(--muted-foreground) / 0.1);
+    background: oklch(0.5 0.12 240 / 0.1);
+  }
+
+  /* ── Shimmer sweep on service cards ── */
+  .shimmer-sweep {
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    background: linear-gradient(
+      118deg,
+      transparent 20%,
+      oklch(var(--accent) / 0.12) 45%,
+      oklch(var(--primary) / 0.1) 55%,
+      transparent 80%
+    );
+    background-size: 220% 220%;
+    background-position: -120% -120%;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+  }
+
+  .group:hover .shimmer-sweep {
+    opacity: 1;
+    animation: shimmer-sweep-anim 0.75s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  }
+
+  /* ── Cursor glow follower ── */
+  .cursor-glow {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 360px;
+    height: 360px;
+    border-radius: 9999px;
+    pointer-events: none;
+    z-index: 9999;
+    background: radial-gradient(
+      circle,
+      oklch(var(--primary) / 0.07) 0%,
+      oklch(var(--accent) / 0.04) 40%,
+      transparent 70%
+    );
+    will-change: transform;
+    mix-blend-mode: screen;
+  }
+}
+
+@keyframes shimmer-sweep-anim {
+  from {
+    background-position: -120% -120%;
+  }
+  to {
+    background-position: 180% 180%;
   }
 }

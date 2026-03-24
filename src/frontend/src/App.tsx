@@ -7,12 +7,12 @@ import {
   ChevronRight,
   Cpu,
   Laptop,
-  Leaf,
   Mail,
   MapPin,
   Menu,
   Package,
   Phone,
+  Rocket,
   Shield,
   Users,
   Wrench,
@@ -21,12 +21,15 @@ import {
 import {
   AnimatePresence,
   motion,
+  useInView,
   useScroll,
   useSpring,
   useTransform,
 } from "motion/react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
+import { CursorGlow } from "./components/CursorGlow";
+import { Particles } from "./components/Particles";
 import { useActor } from "./hooks/useActor";
 
 /* ─────────────────────── data ─────────────────────── */
@@ -144,6 +147,169 @@ function useScrollSpy() {
   return active;
 }
 
+/* ─────────────────────── animation helpers ─────────────────────── */
+
+/** Staggered word-by-word reveal for headings */
+function AnimatedWords({
+  text,
+  className,
+  baseDelay = 0.4,
+  stagger = 0.1,
+  once = true,
+}: {
+  text: string;
+  className?: string;
+  baseDelay?: number;
+  stagger?: number;
+  once?: boolean;
+}) {
+  // Build stable char-position keys using imperative loop (avoids noAccumulatingSpread + noArrayIndexKey)
+  type WordEntry = { word: string; charKey: string; pos: number };
+  const wordEntries: WordEntry[] = [];
+  let offset = 0;
+  for (const word of text.split(" ")) {
+    wordEntries.push({ word, charKey: `c${offset}`, pos: wordEntries.length });
+    offset += word.length + 1;
+  }
+  return (
+    <>
+      {wordEntries.map(({ word, charKey, pos }) => (
+        <span
+          key={charKey}
+          className="inline-block overflow-hidden leading-[1.1]"
+        >
+          <motion.span
+            className={`inline-block${className ? ` ${className}` : ""}`}
+            initial={{ y: "105%", opacity: 0 }}
+            {...(once
+              ? {
+                  whileInView: { y: "0%", opacity: 1 },
+                  viewport: { once: true },
+                }
+              : { animate: { y: "0%", opacity: 1 } })}
+            transition={{
+              duration: 0.65,
+              delay: baseDelay + pos * stagger,
+              ease: [0.16, 1, 0.3, 1],
+            }}
+          >
+            {word}
+            {pos < wordEntries.length - 1 ? "\u00a0" : ""}
+          </motion.span>
+        </span>
+      ))}
+    </>
+  );
+}
+
+/** Section label with draw-in line + staggered heading */
+function SectionHeading({
+  label,
+  title,
+  className,
+}: {
+  label: string;
+  title: string;
+  className?: string;
+}) {
+  return (
+    <div className={`mb-16${className ? ` ${className}` : ""}`}>
+      <motion.div
+        initial={{ opacity: 0, x: -16 }}
+        whileInView={{ opacity: 1, x: 0 }}
+        viewport={{ once: true }}
+        transition={{ duration: 0.5 }}
+        className="flex items-center gap-3 mb-4"
+      >
+        <motion.div
+          initial={{ scaleX: 0 }}
+          whileInView={{ scaleX: 1 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+          className="h-[2px] w-10 bg-primary origin-left"
+        />
+        <p className="text-primary font-medium tracking-widest uppercase text-sm">
+          {label}
+        </p>
+      </motion.div>
+      <h2 className="font-display text-5xl md:text-6xl font-bold text-foreground leading-tight">
+        <AnimatedWords text={title} baseDelay={0.05} stagger={0.09} />
+      </h2>
+    </div>
+  );
+}
+
+/** Magnetic wrapper for CTA buttons */
+function MagneticButton({
+  children,
+  className,
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [offset, setOffset] = useState({ x: 0, y: 0 });
+
+  const handleMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!ref.current) return;
+    const rect = ref.current.getBoundingClientRect();
+    const cx = ((e.clientX - rect.left) / rect.width - 0.5) * 14;
+    const cy = ((e.clientY - rect.top) / rect.height - 0.5) * 10;
+    setOffset({ x: cx, y: cy });
+  };
+
+  return (
+    <motion.div
+      ref={ref}
+      className={`inline-block${className ? ` ${className}` : ""}`}
+      onMouseMove={handleMove}
+      onMouseLeave={() => setOffset({ x: 0, y: 0 })}
+      animate={{ x: offset.x, y: offset.y }}
+      transition={{ type: "spring", stiffness: 280, damping: 22 }}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
+/** Animated count-up number */
+function CountUp({
+  value,
+  suffix = "",
+  duration = 2200,
+}: {
+  value: number;
+  suffix?: string;
+  duration?: number;
+}) {
+  const ref = useRef<HTMLSpanElement>(null);
+  const isInView = useInView(ref as React.RefObject<Element>, {
+    once: true,
+    margin: "-60px",
+  });
+  const [count, setCount] = useState(0);
+
+  useEffect(() => {
+    if (!isInView) return;
+    const startTime = performance.now();
+    const tick = (now: number) => {
+      const elapsed = now - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      const eased = 1 - (1 - progress) ** 3;
+      setCount(Math.round(eased * value));
+      if (progress < 1) requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  }, [isInView, value, duration]);
+
+  return (
+    <span ref={ref}>
+      {count}
+      {suffix}
+    </span>
+  );
+}
+
 /* ─────────────────────── sub-components ─────────────────────── */
 
 /** Tilt card for gallery */
@@ -215,6 +381,45 @@ function TiltCard({
   );
 }
 
+/* ─────────────────────── AnimatedOrb ─────────────────────── */
+
+interface AnimatedOrbProps {
+  className: string;
+  driftX?: number;
+  driftY?: number;
+  rotate?: number;
+  duration?: number;
+  delay?: number;
+}
+
+function AnimatedOrb({
+  className,
+  driftX = 30,
+  driftY = 25,
+  rotate = 10,
+  duration = 35,
+  delay = 0,
+}: AnimatedOrbProps) {
+  return (
+    <motion.div
+      className={`orb ${className}`}
+      animate={{
+        x: [0, driftX, -driftX * 0.6, driftX * 0.3, 0],
+        y: [0, -driftY, driftY * 0.7, -driftY * 0.4, 0],
+        rotate: [0, rotate, -rotate * 0.5, rotate * 0.3, 0],
+        opacity: [0.7, 1, 0.75, 0.95, 0.7],
+      }}
+      transition={{
+        duration,
+        delay,
+        repeat: Number.POSITIVE_INFINITY,
+        ease: "easeInOut",
+      }}
+      style={{ willChange: "transform" }}
+    />
+  );
+}
+
 /* ─────────────────────── main ─────────────────────── */
 
 export default function App() {
@@ -236,6 +441,8 @@ export default function App() {
   const orb2Y = useTransform(smoothY, [0, 2000], [0, -180]);
   const orb3Y = useTransform(smoothY, [400, 2000], [0, -200]);
   const floatBadgeY = useTransform(smoothY, [0, 600], [0, 40]);
+  const aboutOrbY = useTransform(smoothY, [800, 2400], [0, -120]);
+  const galleryOrbY = useTransform(smoothY, [1200, 3000], [0, -160]);
 
   /* Nav scroll shadow */
   useEffect(() => {
@@ -273,6 +480,7 @@ export default function App() {
   return (
     <div className="min-h-screen bg-background overflow-x-hidden">
       <Toaster richColors position="top-right" />
+      <CursorGlow />
 
       {/* ══════════════════ NAV ══════════════════ */}
       <header
@@ -288,7 +496,7 @@ export default function App() {
             data-ocid="nav.link"
           >
             <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center shadow-glow-sm">
-              <Leaf className="w-4 h-4 text-primary-foreground" />
+              <Rocket className="w-4 h-4 text-primary-foreground" />
             </div>
             <span className="font-display text-xl font-bold text-foreground tracking-tight">
               AK Tech
@@ -370,25 +578,55 @@ export default function App() {
           style={{ y: heroBgY }}
         >
           <img
-            src="/assets/generated/forest-texture-bg.dim_1920x1080.jpg"
+            src="/assets/generated/space-hero.dim_1920x1080.jpg"
             alt=""
             className="w-full h-full object-cover scale-110"
           />
           <div className="absolute inset-0 bg-gradient-to-b from-background/80 via-background/50 to-background" />
         </motion.div>
 
+        {/* Firefly particles */}
+        <Particles />
+
         {/* Floating orbs */}
         <motion.div
           style={{ y: orb1Y }}
-          className="absolute top-20 right-[10%] will-change-transform"
+          className="absolute top-20 right-[10%] will-change-transform pointer-events-none"
         >
-          <div className="orb orb-primary w-[480px] h-[480px]" />
+          <AnimatedOrb
+            className="orb-primary w-[480px] h-[480px]"
+            driftX={38}
+            driftY={28}
+            rotate={12}
+            duration={42}
+            delay={0}
+          />
         </motion.div>
         <motion.div
           style={{ y: orb2Y }}
-          className="absolute top-[30%] left-[5%] will-change-transform"
+          className="absolute top-[30%] left-[5%] will-change-transform pointer-events-none"
         >
-          <div className="orb orb-accent w-[320px] h-[320px]" />
+          <AnimatedOrb
+            className="orb-accent w-[320px] h-[320px]"
+            driftX={26}
+            driftY={36}
+            rotate={8}
+            duration={55}
+            delay={7}
+          />
+        </motion.div>
+        <motion.div
+          style={{ y: orb2Y }}
+          className="absolute bottom-[10%] right-[30%] will-change-transform pointer-events-none"
+        >
+          <AnimatedOrb
+            className="orb-muted w-[220px] h-[220px]"
+            driftX={20}
+            driftY={22}
+            rotate={15}
+            duration={38}
+            delay={14}
+          />
         </motion.div>
 
         {/* Hero content */}
@@ -396,55 +634,84 @@ export default function App() {
           className="relative z-10 max-w-7xl mx-auto px-6 w-full pt-24 pb-20 grid md:grid-cols-2 gap-16 items-center"
           style={{ y: heroTextY }}
         >
-          <motion.div
-            initial={{ opacity: 0, y: 40 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
-            className="space-y-7"
-          >
+          <div className="space-y-7">
             <motion.div
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.2, duration: 0.6 }}
+              transition={{ delay: 0.15, duration: 0.6 }}
               className="inline-flex items-center gap-2 glass-light px-4 py-2 rounded-full text-sm font-medium text-muted-foreground"
             >
               <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
               Your Trusted Tech Partner
             </motion.div>
 
-            <h1 className="font-display text-6xl md:text-7xl lg:text-8xl font-bold leading-[0.95] tracking-tight">
-              <span className="text-foreground">Your One-</span>
-              <br />
-              <span className="text-gradient">Stop Tech</span>
-              <br />
-              <span className="text-foreground">Shop.</span>
+            {/* Staggered word-by-word hero heading */}
+            <h1 className="font-display text-6xl md:text-7xl lg:text-8xl font-bold leading-[1.0] tracking-tight">
+              <span className="text-foreground block">
+                <AnimatedWords
+                  text="Your One-"
+                  once={false}
+                  baseDelay={0.35}
+                  stagger={0.11}
+                />
+              </span>
+              <span className="text-gradient block">
+                <AnimatedWords
+                  text="Stop Tech"
+                  once={false}
+                  baseDelay={0.55}
+                  stagger={0.11}
+                />
+              </span>
+              <span className="text-foreground block">
+                <AnimatedWords
+                  text="Shop."
+                  once={false}
+                  baseDelay={0.75}
+                  stagger={0.11}
+                />
+              </span>
             </h1>
 
-            <p className="text-muted-foreground text-lg leading-relaxed max-w-sm">
+            <motion.p
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.9, duration: 0.6 }}
+              className="text-muted-foreground text-lg leading-relaxed max-w-sm"
+            >
               Premium technology, expert repairs, and personalized support — in
               a nature-inspired space crafted for you.
-            </p>
+            </motion.p>
 
-            <div className="flex flex-wrap gap-4 pt-1">
-              <Button
-                size="lg"
-                className="bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl px-7 font-semibold shadow-glow hover:shadow-glow transition-all duration-300 hover:-translate-y-0.5"
-                onClick={() => scrollTo("#services")}
-                data-ocid="hero.primary_button"
-              >
-                Explore Services <ChevronRight className="w-4 h-4 ml-1" />
-              </Button>
-              <Button
-                variant="outline"
-                size="lg"
-                className="glass-light border-border/60 text-foreground hover:border-primary/50 hover:text-primary rounded-xl px-7 font-semibold transition-all duration-300 hover:-translate-y-0.5"
-                onClick={() => scrollTo("#contact")}
-                data-ocid="hero.secondary_button"
-              >
-                Contact Us
-              </Button>
-            </div>
-          </motion.div>
+            <motion.div
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 1.05, duration: 0.6 }}
+              className="flex flex-wrap gap-4 pt-1"
+            >
+              <MagneticButton>
+                <Button
+                  size="lg"
+                  className="bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl px-7 font-semibold shadow-glow hover:shadow-glow transition-all duration-300 hover:-translate-y-0.5"
+                  onClick={() => scrollTo("#services")}
+                  data-ocid="hero.primary_button"
+                >
+                  Explore Services <ChevronRight className="w-4 h-4 ml-1" />
+                </Button>
+              </MagneticButton>
+              <MagneticButton>
+                <Button
+                  variant="outline"
+                  size="lg"
+                  className="glass-light border-border/60 text-foreground hover:border-primary/50 hover:text-primary rounded-xl px-7 font-semibold transition-all duration-300 hover:-translate-y-0.5"
+                  onClick={() => scrollTo("#contact")}
+                  data-ocid="hero.secondary_button"
+                >
+                  Contact Us
+                </Button>
+              </MagneticButton>
+            </motion.div>
+          </div>
 
           {/* Right: Hero image with parallax float */}
           <motion.div
@@ -513,38 +780,45 @@ export default function App() {
         id="services"
         className="relative py-28 bg-secondary section-clip-top -mt-16 pt-36 overflow-hidden"
       >
-        {/* Parallax orb */}
+        {/* Parallax orbs */}
         <motion.div
           style={{ y: orb3Y }}
           className="absolute top-0 right-0 will-change-transform pointer-events-none"
         >
-          <div className="orb orb-primary w-[500px] h-[500px]" />
+          <AnimatedOrb
+            className="orb-primary w-[500px] h-[500px]"
+            driftX={32}
+            driftY={24}
+            rotate={10}
+            duration={48}
+            delay={3}
+          />
+        </motion.div>
+        <motion.div
+          style={{ y: orb3Y }}
+          className="absolute bottom-0 left-[20%] will-change-transform pointer-events-none"
+        >
+          <AnimatedOrb
+            className="orb-muted w-[280px] h-[280px]"
+            driftX={24}
+            driftY={30}
+            rotate={14}
+            duration={60}
+            delay={18}
+          />
         </motion.div>
 
         {/* Faint bg texture */}
         <div className="absolute inset-0 opacity-10 pointer-events-none">
           <img
-            src="/assets/generated/forest-texture-bg.dim_1920x1080.jpg"
+            src="/assets/generated/space-hero.dim_1920x1080.jpg"
             alt=""
             className="w-full h-full object-cover"
           />
         </div>
 
         <div className="relative z-10 max-w-7xl mx-auto px-6">
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.7 }}
-            className="mb-16"
-          >
-            <p className="text-primary font-medium tracking-widest uppercase text-sm mb-3">
-              What We Offer
-            </p>
-            <h2 className="font-display text-5xl md:text-6xl font-bold text-foreground leading-tight">
-              Our Services
-            </h2>
-          </motion.div>
+          <SectionHeading label="What We Offer" title="Our Services" />
 
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {SERVICES.map((svc, i) => (
@@ -555,9 +829,12 @@ export default function App() {
                 viewport={{ once: true }}
                 transition={{ duration: 0.55, delay: i * 0.09 }}
                 whileHover={{ y: -6, transition: { duration: 0.25 } }}
-                className="glass rounded-2xl p-7 group cursor-default"
+                className="glass rounded-2xl p-7 group cursor-default relative overflow-hidden"
                 data-ocid={`services.item.${i + 1}`}
               >
+                {/* Shimmer sweep on hover */}
+                <div className="shimmer-sweep" aria-hidden="true" />
+
                 <div className="w-12 h-12 rounded-xl bg-primary/15 border border-primary/25 flex items-center justify-center mb-5 group-hover:bg-primary/25 group-hover:shadow-glow-sm transition-all duration-300">
                   <svc.icon className="w-5 h-5 text-primary" />
                 </div>
@@ -579,10 +856,30 @@ export default function App() {
         className="relative py-28 bg-background section-clip-top-reverse -mt-16 pt-36 overflow-hidden"
       >
         <motion.div
-          style={{ y: useTransform(smoothY, [800, 2400], [0, -120]) }}
+          style={{ y: aboutOrbY }}
           className="absolute bottom-0 left-0 will-change-transform pointer-events-none"
         >
-          <div className="orb orb-accent w-[400px] h-[400px]" />
+          <AnimatedOrb
+            className="orb-accent w-[400px] h-[400px]"
+            driftX={28}
+            driftY={20}
+            rotate={9}
+            duration={52}
+            delay={10}
+          />
+        </motion.div>
+        <motion.div
+          style={{ y: aboutOrbY }}
+          className="absolute top-[10%] right-[5%] will-change-transform pointer-events-none"
+        >
+          <AnimatedOrb
+            className="orb-muted w-[240px] h-[240px]"
+            driftX={18}
+            driftY={28}
+            rotate={12}
+            duration={44}
+            delay={22}
+          />
         </motion.div>
 
         <div className="relative z-10 max-w-7xl mx-auto px-6">
@@ -604,7 +901,7 @@ export default function App() {
                 />
                 <div className="absolute inset-0 bg-gradient-to-tr from-background/40 to-transparent" />
               </div>
-              {/* Floating stat card */}
+              {/* Floating stat card – years */}
               <motion.div
                 animate={{ y: [0, -8, 0] }}
                 transition={{
@@ -615,13 +912,13 @@ export default function App() {
                 className="absolute -top-5 -right-5 glass rounded-2xl px-6 py-5 shadow-card text-center"
               >
                 <p className="font-display text-4xl font-bold text-gradient">
-                  8+
+                  <CountUp value={8} suffix="+" />
                 </p>
                 <p className="text-xs text-muted-foreground font-medium mt-1">
                   Years Experience
                 </p>
               </motion.div>
-              {/* Secondary stat */}
+              {/* Floating stat card – customers */}
               <motion.div
                 animate={{ y: [0, 8, 0] }}
                 transition={{
@@ -632,7 +929,7 @@ export default function App() {
                 className="absolute -bottom-5 -left-5 glass rounded-2xl px-6 py-5 shadow-card text-center"
               >
                 <p className="font-display text-4xl font-bold text-gradient">
-                  2K+
+                  <CountUp value={2000} suffix="+" duration={2400} />
                 </p>
                 <p className="text-xs text-muted-foreground font-medium mt-1">
                   Happy Customers
@@ -648,12 +945,33 @@ export default function App() {
               transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
               className="space-y-6"
             >
-              <p className="text-primary font-medium tracking-widest uppercase text-sm">
-                Our Story
-              </p>
-              <h2 className="font-display text-5xl font-bold text-foreground leading-tight">
-                About AK Tech
-              </h2>
+              <div className="mb-0">
+                <motion.div
+                  initial={{ opacity: 0, x: -16 }}
+                  whileInView={{ opacity: 1, x: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.5 }}
+                  className="flex items-center gap-3 mb-4"
+                >
+                  <motion.div
+                    initial={{ scaleX: 0 }}
+                    whileInView={{ scaleX: 1 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+                    className="h-[2px] w-10 bg-primary origin-left"
+                  />
+                  <p className="text-primary font-medium tracking-widest uppercase text-sm">
+                    Our Story
+                  </p>
+                </motion.div>
+                <h2 className="font-display text-5xl font-bold text-foreground leading-tight">
+                  <AnimatedWords
+                    text="About AK Tech"
+                    baseDelay={0.05}
+                    stagger={0.09}
+                  />
+                </h2>
+              </div>
               <p className="text-muted-foreground leading-relaxed">
                 Founded with a passion for technology and a commitment to
                 community, AK Tech has been your trusted retail destination for
@@ -682,13 +1000,15 @@ export default function App() {
                   </motion.li>
                 ))}
               </ul>
-              <Button
-                className="bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl px-7 font-semibold shadow-glow hover:shadow-glow transition-all duration-300 hover:-translate-y-0.5 mt-2"
-                onClick={() => scrollTo("#contact")}
-                data-ocid="about.primary_button"
-              >
-                Get In Touch <ChevronRight className="w-4 h-4 ml-1" />
-              </Button>
+              <MagneticButton>
+                <Button
+                  className="bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl px-7 font-semibold shadow-glow hover:shadow-glow transition-all duration-300 hover:-translate-y-0.5 mt-2"
+                  onClick={() => scrollTo("#contact")}
+                  data-ocid="about.primary_button"
+                >
+                  Get In Touch <ChevronRight className="w-4 h-4 ml-1" />
+                </Button>
+              </MagneticButton>
             </motion.div>
           </div>
         </div>
@@ -701,27 +1021,27 @@ export default function App() {
       >
         <div className="absolute inset-0 opacity-10 pointer-events-none">
           <img
-            src="/assets/generated/forest-texture-bg.dim_1920x1080.jpg"
+            src="/assets/generated/space-hero.dim_1920x1080.jpg"
             alt=""
             className="w-full h-full object-cover"
           />
         </div>
+        <motion.div
+          style={{ y: galleryOrbY }}
+          className="absolute top-[20%] left-[-5%] will-change-transform pointer-events-none"
+        >
+          <AnimatedOrb
+            className="orb-accent w-[360px] h-[360px]"
+            driftX={30}
+            driftY={26}
+            rotate={11}
+            duration={50}
+            delay={16}
+          />
+        </motion.div>
 
         <div className="relative z-10 max-w-7xl mx-auto px-6">
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.7 }}
-            className="mb-16"
-          >
-            <p className="text-primary font-medium tracking-widest uppercase text-sm mb-3">
-              Our Space & Products
-            </p>
-            <h2 className="font-display text-5xl md:text-6xl font-bold text-foreground leading-tight">
-              Gallery
-            </h2>
-          </motion.div>
+          <SectionHeading label="Our Space & Products" title="Gallery" />
 
           {/* Staggered masonry-style grid */}
           <div
@@ -750,7 +1070,14 @@ export default function App() {
           <div className="absolute inset-0 bg-gradient-to-b from-background via-background/90 to-background" />
         </div>
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none">
-          <div className="orb orb-primary w-[600px] h-[600px]" />
+          <AnimatedOrb
+            className="orb-primary w-[600px] h-[600px]"
+            driftX={40}
+            driftY={32}
+            rotate={7}
+            duration={58}
+            delay={5}
+          />
         </div>
 
         <div className="relative z-10 max-w-7xl mx-auto px-6">
@@ -764,13 +1091,34 @@ export default function App() {
               className="space-y-10 pt-4"
             >
               <div>
-                <p className="text-primary font-medium tracking-widest uppercase text-sm mb-3">
-                  Reach Out
-                </p>
+                <motion.div
+                  initial={{ opacity: 0, x: -16 }}
+                  whileInView={{ opacity: 1, x: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.5 }}
+                  className="flex items-center gap-3 mb-4"
+                >
+                  <motion.div
+                    initial={{ scaleX: 0 }}
+                    whileInView={{ scaleX: 1 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+                    className="h-[2px] w-10 bg-primary origin-left"
+                  />
+                  <p className="text-primary font-medium tracking-widest uppercase text-sm">
+                    Reach Out
+                  </p>
+                </motion.div>
                 <h2 className="font-display text-5xl md:text-6xl font-bold text-foreground leading-tight mb-4">
-                  Let's talk
+                  <AnimatedWords
+                    text="Let's talk"
+                    baseDelay={0.05}
+                    stagger={0.1}
+                  />
                   <br />
-                  <span className="text-gradient">tech.</span>
+                  <span className="text-gradient">
+                    <AnimatedWords text="tech." baseDelay={0.3} stagger={0.1} />
+                  </span>
                 </h2>
                 <p className="text-muted-foreground leading-relaxed">
                   Visit our store, call us, or drop a message. Our team is ready
@@ -785,7 +1133,7 @@ export default function App() {
                     label: "Address",
                     value: "123 Tech Street, City",
                   },
-                  { icon: Phone, label: "Phone", value: "+91 80909610796" },
+                  { icon: Phone, label: "Phone", value: "+91 8917019673" },
                   { icon: Mail, label: "Email", value: "info@aktech.com" },
                 ].map((item) => (
                   <div key={item.label} className="flex items-center gap-4">
@@ -902,29 +1250,31 @@ export default function App() {
                       data-ocid="contact.textarea"
                     />
                   </div>
-                  <Button
-                    type="submit"
-                    disabled={submitting}
-                    className="w-full bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl h-12 font-semibold shadow-glow hover:shadow-glow transition-all duration-300 hover:-translate-y-0.5 disabled:opacity-60 disabled:cursor-not-allowed"
-                    data-ocid="contact.submit_button"
-                  >
-                    {submitting ? (
-                      <>
-                        <motion.span
-                          animate={{ rotate: 360 }}
-                          transition={{
-                            repeat: Number.POSITIVE_INFINITY,
-                            duration: 1,
-                            ease: "linear",
-                          }}
-                          className="w-4 h-4 border-2 border-primary-foreground/40 border-t-primary-foreground rounded-full inline-block mr-2"
-                        />
-                        Sending…
-                      </>
-                    ) : (
-                      "Send Message"
-                    )}
-                  </Button>
+                  <MagneticButton className="w-full">
+                    <Button
+                      type="submit"
+                      disabled={submitting}
+                      className="w-full bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl h-12 font-semibold shadow-glow hover:shadow-glow transition-all duration-300 hover:-translate-y-0.5 disabled:opacity-60 disabled:cursor-not-allowed"
+                      data-ocid="contact.submit_button"
+                    >
+                      {submitting ? (
+                        <>
+                          <motion.span
+                            animate={{ rotate: 360 }}
+                            transition={{
+                              repeat: Number.POSITIVE_INFINITY,
+                              duration: 1,
+                              ease: "linear",
+                            }}
+                            className="w-4 h-4 border-2 border-primary-foreground/40 border-t-primary-foreground rounded-full inline-block mr-2"
+                          />
+                          Sending…
+                        </>
+                      ) : (
+                        "Send Message"
+                      )}
+                    </Button>
+                  </MagneticButton>
                   {submitting && (
                     <p
                       className="text-center text-sm text-muted-foreground"
@@ -947,7 +1297,7 @@ export default function App() {
             <div className="space-y-4">
               <div className="flex items-center gap-2.5">
                 <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center shadow-glow-sm">
-                  <Leaf className="w-4 h-4 text-primary-foreground" />
+                  <Rocket className="w-4 h-4 text-primary-foreground" />
                 </div>
                 <span className="font-display text-xl font-bold text-foreground">
                   AK Tech
@@ -985,7 +1335,7 @@ export default function App() {
               </h4>
               <ul className="space-y-2 text-sm text-muted-foreground">
                 <li>123 Tech Street, City</li>
-                <li>+91 80909610796</li>
+                <li>+91 8917019673</li>
                 <li>info@aktech.com</li>
               </ul>
             </div>

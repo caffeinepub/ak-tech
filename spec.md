@@ -1,26 +1,27 @@
 # AK Tech
 
 ## Current State
-New project — no existing application.
+The site uses a Dark Forest luxury theme with deep green OKLCH colors, floating orbs in greens/golds, a Leaf logo icon, and a forest texture background image.
 
 ## Requested Changes (Diff)
 
 ### Add
-- Full single-page retail shop website for AK Tech
-- Sticky navigation with links: Home, Services, About, Gallery, Contact
-- Hero section with headline, subtext, and CTA buttons
-- Services section with 3-column card grid
-- About section with image and text
-- Gallery section with image grid
-- Contact form section (Name, Email, Message) with contact details
-- Footer with brand name, quick links, copyright
+- Space-themed hero background image (already generated: `/assets/generated/space-hero.dim_1920x1080.jpg`)
 
 ### Modify
-- N/A (new project)
+- `index.css` color palette: replace dark forest greens with deep space navy/black background, electric cyan primary, purple/violet accent
+- `App.tsx`: replace all `forest-texture-bg.dim_1920x1080.jpg` references with `space-hero.dim_1920x1080.jpg`
+- `App.tsx`: replace `Leaf` icon import and usage with `Rocket` icon for the nav logo
+- Update orb colors in CSS to reflect nebula tones (cyan, violet, indigo)
+- Update gradient and text-gradient to space cyan/purple palette
+- Update cursor glow to match space theme colors
 
 ### Remove
-- N/A (new project)
+- Nothing removed
 
 ## Implementation Plan
-1. Backend: simple contact form message storage (store name, email, message)
-2. Frontend: single-page layout with all five sections, nature-inspired green/neutral palette, smooth scroll navigation
+1. Update `index.css` OKLCH color tokens to deep space palette (background ~0.05 L hue 270, primary cyan hue 195, accent purple hue 295)
+2. Update orb CSS classes to nebula colors
+3. In App.tsx swap `Leaf` → `Rocket` in imports and JSX
+4. Replace all `forest-texture-bg` src references with `space-hero.dim_1920x1080.jpg`
+5. Validate build
